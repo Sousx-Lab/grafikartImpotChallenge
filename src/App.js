@@ -7,10 +7,9 @@ function App() {
     income: "",
     situation:"",
     children: 0,
-    netIncome:"",
   });
 
-  let taxSchedule  = [
+  let taxes  = [
     {somme: 10064, rate: 0},
     {somme: 25659, rate: 11},
     {somme: 73369, rate: 30},
@@ -18,23 +17,23 @@ function App() {
     {somme: Infinity, rate: 45},
   ];
 
+  let partByChild = [
+    {child: 0, part: 0},
+    {child: 1, part: 0.5},
+    {child: 2, part: 0.5},
+    {child: 3, part: 1}
+  ];
+
   const handleDeclaration = ({currentTarget}) => {
     const {name, value} = currentTarget;
     setDeclaration({...declaration, [name]: value});
   }
 
-  //Calcule le quotient familial
+  //Calcule le quotient familial...
   function getFamilyQuotient(situation, children){
 
-    let Fquotient = (situation === "single") ? 1
-                    :(situation === "couple") ? 2 
-                    :1
-    let partByChild = [
-        {child: 0, part: 0},
-        {child: 1, part: 0.5},
-        {child: 2, part: 0.5},
-        {child: 3, part: 1}
-    ];
+    let Fquotient = (situation === "single") ? 1 :(situation === "couple") ? 2 : 1
+                
     if(parseInt(children, 10) > 0){
       for(let i = 0; i <= parseInt(children, 10); i++){
         if(i >= partByChild.length){
@@ -56,36 +55,40 @@ function App() {
   }
 
   const [result, setResult] = useState({
-    totalTax: 0,
-    netIncome:0
+    bySlice:[],
+    totalTax:"",
+    netIncome:""
   }); 
 
-  function Calculate(incomeTaxable, fQuotient){
+  console.log(result);
+  function Calculate(situation, children, income){
+      let fQuotient = getFamilyQuotient(situation, children);
+      let incomeTaxable = getTaxable(income, fQuotient);
+      console.log(incomeTaxable, fQuotient);
       let alreadyCounted = 0;
       let i = 0;
       let taxByslice = [];
       while(alreadyCounted < incomeTaxable){
           if(i===0){
-            taxByslice.push((taxSchedule[i].somme - alreadyCounted) * taxSchedule[i].rate);
+            taxByslice.push((taxes[i].somme - alreadyCounted) * taxes[i].rate);
 
-          }else if(taxSchedule[i].somme > incomeTaxable) {
-            taxByslice.push((incomeTaxable - taxSchedule[i-1].somme+1) * taxSchedule[i].rate);
+          }else if(taxes[i].somme > incomeTaxable) {
+            taxByslice.push((incomeTaxable - taxes[i-1].somme+1) * taxes[i].rate);
             
           }else{
-            taxByslice.push((taxSchedule[i].somme - taxSchedule[i-1].somme-1) * taxSchedule[i].rate);
+            taxByslice.push((taxes[i].somme - taxes[i-1].somme-1) * taxes[i].rate);
             
           }
-          alreadyCounted = taxSchedule[i].somme;
-          result.totalTax = Math.round(taxByslice.reduce((a, b) => a + b, 0))/100 * fQuotient;
-          result.netIncome = incomeTaxable - result.totalTax;
-          console.log(result);
+          alreadyCounted = taxes[i].somme;
           i++;
       }
-  }
+      let totalTax = Math.round(taxByslice.reduce((a, b) => a + b, 0))/100 * fQuotient;
+      let netIncome = income - totalTax;
+      setResult({bySlice : taxByslice, totalTax: totalTax.toFixed(0), netIncome: netIncome.toFixed(0)});
+    };
   
   useEffect(() => {
-    let fQuotient = getFamilyQuotient(declaration.situation, declaration.children);
-    Calculate(getTaxable(declaration.income, fQuotient), fQuotient);
+    Calculate(declaration.situation, declaration.children, declaration.income);
   },[declaration]);
 
   return (
@@ -136,16 +139,16 @@ function App() {
 
           <div className="form-group" >
             <label htmlFor="impots">Montant d'imposition à payer</label>
-              <input type="text" readOnly={true} className="form-control"
+              <input type="number" readOnly={true} className="form-control"
                 name="totalTax"
                  id="impots"
-                  value={result.totalTax} 
+                  value={result.totalTax}
               />
           </div>
 
           <div className="form-group" >
             <label htmlFor="revnueNet">Revenus Après imposition</label>
-            <input type="text" readOnly={true} className="form-control" 
+            <input type="number" readOnly={true} className="form-control" 
               name="netIncome"
                id="revnueNet" 
                 value={result.netIncome}
