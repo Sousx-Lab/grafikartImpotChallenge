@@ -56,15 +56,11 @@ function App() {
 
   const [result, setResult] = useState({
     bySlice:[],
-    totalTax:"",
     netIncome:""
   }); 
-
-  console.log(result);
   function Calculate(situation, children, income){
       let fQuotient = getFamilyQuotient(situation, children);
       let incomeTaxable = getTaxable(income, fQuotient);
-      console.log(incomeTaxable, fQuotient);
       let alreadyCounted = 0;
       let i = 0;
       let taxByslice = [];
@@ -77,16 +73,16 @@ function App() {
             
           }else{
             taxByslice.push((taxes[i].somme - taxes[i-1].somme-1) * taxes[i].rate);
-            
+        
           }
           alreadyCounted = taxes[i].somme;
           i++;
       }
-      let totalTax = Math.round(taxByslice.reduce((a, b) => a + b, 0))/100 * fQuotient;
-      let netIncome = income - totalTax;
-      setResult({bySlice : taxByslice, totalTax: totalTax.toFixed(0), netIncome: netIncome.toFixed(0)});
+      let totalTax = Math.floor(taxByslice.reduce((a, b) => a + b, 0))/100 * fQuotient;
+      setResult({bySlice : taxByslice, netIncome: income - totalTax});
+      
     };
-  
+console.log(result.bySlice);
   useEffect(() => {
     Calculate(declaration.situation, declaration.children, declaration.income);
   },[declaration]);
@@ -115,7 +111,7 @@ function App() {
                    onChange={handleDeclaration}/>
             <label className="custom-control-label" htmlFor="single">	Célibataire, divorcé ou veuf</label>
           </div>
-                <div className="custom-control custom-radio">
+              <div className="custom-control custom-radio">
                 <input type="radio" className="custom-control-input" 
                   id="couple"
                     name="situation"
@@ -125,7 +121,6 @@ function App() {
           </div>
         </div>
       </fieldset>
-
           <div className="form-group">
             <label htmlFor="children">Nombres d'enfants</label>
               <input type="number" className="form-control"
@@ -134,29 +129,48 @@ function App() {
                    value={declaration.children}
                     onChange={handleDeclaration}
                       placeholder="Nombres d'enfants à charge" 
-                />
-          </div>
-
+                  />
+            </div>
           <div className="form-group" >
             <label htmlFor="impots">Montant d'imposition à payer</label>
               <input type="number" readOnly={true} className="form-control"
                 name="totalTax"
                  id="impots"
-                  value={result.totalTax}
-              />
+                  value={result.bySlice.reduce((a, b) => a + b, 0)/100}
+                />
           </div>
-
           <div className="form-group" >
-            <label htmlFor="revnueNet">Revenus Après imposition</label>
+            <label htmlFor="revnueNet">Revenus net après imposition</label>
             <input type="number" readOnly={true} className="form-control" 
               name="netIncome"
                id="revnueNet" 
                 value={result.netIncome}
-                 />
+              />
           </div>
         </form>
+    {result.netIncome > 0 && (
+      <div className="pt-3">
+       <h3 className="text-center t">Resumé par tranches</h3> 
+      <table className="table table-over text-center">
+      <thead>
+        <tr>
+          <th scope="col">Tranches</th>
+          <th scope="col">Montant d'impositions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {result.bySlice.map((slice, k) => (
+          <tr key={k}>
+            <th scope="row">{(k+1 === 1 && k+1 + " ere Tranche") || k+1 + "eme Tranches"}</th>
+             <td>{slice}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       </div>
+      )}
     </div>
+  </div>
   );
 }
 
